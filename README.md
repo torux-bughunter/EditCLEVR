@@ -1,6 +1,6 @@
 # EditCLEVR
 
-**[ICML 2026]** An official source code for paper *"EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations"*.
+**[ICML 2026]** Official source code for *"EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations"* (ICML workshop on Combining Theory and Benchmarks; paper URL work in progress).
 
 EditCLEVR is a benchmark for evaluating **intervention faithfulness** in object-centric representations: when exactly one object-level factor changes between two images, does the model localize and represent that change correctly?
 
@@ -158,7 +158,11 @@ python3 scripts/upload_huggingface_dataset.py
 
 ## Citation
 
-See [`CITATION.cff`](CITATION.cff). Update with final ICML workshop paper metadata before submission.
+If you use EditCLEVR, please cite:
+
+> Anuraag Gadehothur Karnam and Tarunesh Sathish. *EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations.* ICML 2026 Workshop on Combining Theory and Benchmarks: Towards A Virtuous Cycle to Understand and Guarantee Foundation Model Performance, 2026. Paper URL work in progress.
+
+Full machine-readable metadata: [`CITATION.cff`](CITATION.cff).
 
 ## Known limitations
 

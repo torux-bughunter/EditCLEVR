@@ -16,7 +16,10 @@ keywords = [
     "synthetic-benchmark",
     "computer-vision",
 ]
-authors = [{ name = "EditCLEVR Authors" }]
+authors = [
+    { name = "Anuraag Gadehothur Karnam" },
+    { name = "Tarunesh Sathish" },
+]
 classifiers = [
     "Intended Audience :: Science/Research",
     "License :: OSI Approved :: MIT License",

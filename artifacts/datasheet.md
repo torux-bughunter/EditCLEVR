@@ -28,4 +28,4 @@ Each pair contains:
 
 ## Maintenance
 
-Active ICML workshop release.
+ICML 2026 workshop release (Combining Theory and Benchmarks).

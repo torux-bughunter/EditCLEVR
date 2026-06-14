@@ -85,4 +85,8 @@ phase1_manifest.json
 
 ## Citation
 
-If you use this dataset, please cite the EditCLEVR ICML 2026 paper when available. See [`CITATION.cff`](https://github.com/torux-bughunter/EditCLEVR/blob/main/CITATION.cff) in the code repository.
+If you use this dataset, please cite:
+
+> Anuraag Gadehothur Karnam and Tarunesh Sathish. *EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations.* ICML 2026 Workshop on Combining Theory and Benchmarks: Towards A Virtuous Cycle to Understand and Guarantee Foundation Model Performance, 2026. Paper URL work in progress.
+
+See [`CITATION.cff`](https://github.com/torux-bughunter/EditCLEVR/blob/main/CITATION.cff) in the code repository.

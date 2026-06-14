@@ -1,8 +1,8 @@
 cff-version: 1.2.0
 title: EditCLEVR
 message: >-
-  If you use this software or dataset, please cite the ICML workshop paper
-  when available.
+  If you use this software or dataset, please cite the EditCLEVR ICML 2026
+  workshop paper (citation metadata below; paper URL forthcoming).
 type: software
 license: MIT
 repository-code: https://github.com/torux-bughunter/EditCLEVR
@@ -13,14 +13,26 @@ keywords:
   - CLEVR
   - synthetic benchmark
 authors:
-  - family-names: EditCLEVR
-    given-names: Authors
-    affiliation: TBD
+  - given-names: Anuraag Gadehothur
+    family-names: Karnam
+    affiliation: Lebanon Trail High School
+  - given-names: Tarunesh
+    family-names: Sathish
+    affiliation: Walnut Grove High School
 preferred-citation:
-  type: article
-  title: "EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations"
+  type: proceedings
+  title: >-
+    EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional
+    Faithfulness of Object-Centric Representations
   authors:
-    - family-names: EditCLEVR
-      given-names: Authors
+    - given-names: Anuraag Gadehothur
+      family-names: Karnam
+      affiliation: Lebanon Trail High School
+    - given-names: Tarunesh
+      family-names: Sathish
+      affiliation: Walnut Grove High School
+  collection-title: >-
+    ICML 2026 Workshop on Combining Theory and Benchmarks: Towards A Virtuous
+    Cycle to Understand and Guarantee Foundation Model Performance
   year: 2026
-  notes: ICML 2026 — update with final author list and paper URL when available.
+  notes: Paper URL work in progress.
