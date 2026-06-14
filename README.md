@@ -33,7 +33,16 @@ attributes (`splits.json`). Run the evaluation pipeline (CPU-only) over a datase
 python3 -m editclevr.evaluation.run_evaluation
 ```
 
-This trains attribute probes on the train split and reports the headline metrics with
+Without pre-extracted features this runs a lightweight GT-mask oracle reference encoder.
+For paper baselines, pass split NPZ feature caches:
+
+```bash
+python3 -m editclevr.evaluation.run_evaluation \
+  --features-dir path/to/features \
+  --model-name dinosaur_native
+```
+
+This trains linear attribute probes on the train split and reports headline metrics with
 bootstrap confidence intervals, writing `results.json` and per-split/suite CSVs to the
 output directory.
 
@@ -69,8 +78,17 @@ print(results["overall"]["SGIA"])           # {"mean": ..., "ci_lower": ..., "ci
 
 ## Reproducing paper baselines
 
-This repository provides the benchmark, metrics, and evaluation protocol. Baseline training
-code is not included; the settings below match those reported in the paper.
+This repository provides the benchmark, metrics, and evaluation protocol. Baseline
+architectures follow the upstream implementations below; after extracting per-object
+features, score them with:
+
+```bash
+python3 -m editclevr.evaluation.run_evaluation \
+  --features-dir path/to/features \
+  --model-name dinosaur_native
+```
+
+The settings below match those reported in the paper.
 
 **Slot Attention (`sa_native`)** — trained from scratch on EditCLEVR train before-images.
 Architecture follows
@@ -96,15 +114,10 @@ source is the only difference).
 384 (`siglip2_oracle`). SAM2 hybrids used SAM2 ViT-Hiera-tiny automatic masks with the same
 backbones at native resolution.
 
-**Native matching (headline protocol).** For learned-slot and SAM 2 rows, each
-ground-truth object is assigned the single predicted slot or mask proposal with highest
-**best-overlap (MatchBO)** in that frame (strict one-to-one assignment; unused slots and
-extra proposals are ignored). Semantic metrics are **conditional** on the edited object
-having MatchBO ≥ 0.5 in **both** before and after frames. Linear logistic-regression probes
-(one per factor) are fit on train object vectors; all object vectors are L2-normalized.
-An IoU-weighted soft mixture over slot/proposal features is reported in the paper as an
-ablation (Appendix D), not the headline setting. `editclevr/evaluation/slot_matching.py`
-implements Hungarian IoU matching as a utility; the paper tables use strict MatchBO assignment.
+**Native matching (`strict`)** — for learned-slot and SAM 2 rows, each ground-truth object
+gets the single slot or proposal with highest MatchBO in that frame. Semantic metrics require
+edited-object MatchBO ≥ 0.5 in both frames. Linear logistic-regression probes on
+L2-normalized train vectors (`run_evaluation --alignment strict`, default).
 
 ## Generate data (optional)
 

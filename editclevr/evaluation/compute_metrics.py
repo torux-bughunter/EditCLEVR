@@ -42,6 +42,21 @@ def foreground_ari(pred_labels: np.ndarray, gt_labels: np.ndarray, background_la
     return float(adjusted_rand_score(gt_labels[valid], pred_labels[valid]))
 
 
+SEMANTIC_METRIC_KEYS = (
+    "TFA",
+    "NFP",
+    "UOP",
+    "UOP_rate",
+    "SceneGraphExact",
+    "DeltaSGIA",
+    "SGIA",
+)
+
+
+def zero_semantic_intervention_metrics() -> dict[str, float]:
+    return {key: 0.0 for key in SEMANTIC_METRIC_KEYS}
+
+
 def semantic_intervention_metrics(
     before_predictions: list[dict[str, str]],
     after_predictions: list[dict[str, str]],
@@ -49,66 +64,92 @@ def semantic_intervention_metrics(
     after_ground_truth: list[dict[str, str]],
     edited_object_index: int,
     edit_factor: str,
+    *,
+    trusted_before: np.ndarray | None = None,
+    trusted_after: np.ndarray | None = None,
 ) -> dict[str, float]:
     """Compute semantic intervention metrics from decoded object factors.
 
-    DeltaSGIA captures intervention-consistency: the edited
-    factor's decoded after value is correct, and the decoded before-to-after
-    change is restricted to the edited object and edited factor.
-
-    UOP is the strict all-or-nothing untouched-object preservation check. UOP_rate
-    is its count-normalized companion: the fraction of untouched object-factor
-    comparisons that stayed unchanged.
-
-    SGIA is stricter than DeltaSGIA and TFA/NFP/UOP alone: the decoded after-scene
-    graph must also match ground truth, reported as SceneGraphExact.
+    When ``trusted_before`` / ``trusted_after`` are provided (per-object booleans
+    from native slot assignment), untrusted non-edited objects are skipped in
+    ``UOP_rate`` and counted as failures in ``UOP`` / ``SceneGraphExact`` / ``SGIA``.
+    The edited object must be trusted on both frames or edited-object metrics are 0.
     """
-    target_after_pred = after_predictions[edited_object_index]
-    target_before_pred = before_predictions[edited_object_index]
-    target_before_gt = before_ground_truth[edited_object_index]
-    target_after_gt = after_ground_truth[edited_object_index]
+    num_objects = len(before_predictions)
+    if trusted_before is None:
+        trusted_before = np.ones(num_objects, dtype=bool)
+    else:
+        trusted_before = np.asarray(trusted_before, dtype=bool)
+    if trusted_after is None:
+        trusted_after = np.ones(num_objects, dtype=bool)
+    else:
+        trusted_after = np.asarray(trusted_after, dtype=bool)
 
-    tfa = float(target_after_pred[edit_factor] == target_after_gt[edit_factor])
+    edited_trusted = bool(trusted_before[edited_object_index]) and bool(
+        trusted_after[edited_object_index]
+    )
 
-    non_target_factors = [key for key in target_before_gt.keys() if key != edit_factor]
-    nfp = float(all(target_after_pred[factor] == target_before_pred[factor] for factor in non_target_factors))
+    if edited_trusted:
+        target_after_pred = after_predictions[edited_object_index]
+        target_before_pred = before_predictions[edited_object_index]
+        target_after_gt = after_ground_truth[edited_object_index]
+        tfa = float(target_after_pred[edit_factor] == target_after_gt[edit_factor])
+        non_target_factors = [
+            key for key in before_ground_truth[edited_object_index] if key != edit_factor
+        ]
+        nfp = float(
+            all(target_after_pred[factor] == target_before_pred[factor] for factor in non_target_factors)
+        )
+    else:
+        tfa = 0.0
+        nfp = 0.0
 
     preserved = []
     untouched_factor_preserved = []
-    for object_index in range(len(before_predictions)):
+    for object_index in range(num_objects):
         if object_index == edited_object_index:
             continue
-        factor_matches = [
-            after_predictions[object_index][factor] == before_predictions[object_index][factor]
-            for factor in before_predictions[object_index]
-        ]
-        untouched_factor_preserved.extend(factor_matches)
-        unchanged = all(factor_matches)
-        preserved.append(unchanged)
+        object_trusted = bool(trusted_before[object_index]) and bool(trusted_after[object_index])
+        if object_trusted:
+            factor_matches = [
+                after_predictions[object_index][factor] == before_predictions[object_index][factor]
+                for factor in before_predictions[object_index]
+            ]
+            untouched_factor_preserved.extend(factor_matches)
+            preserved.append(all(factor_matches))
+        else:
+            preserved.append(False)
+
     uop = float(all(preserved)) if preserved else 1.0
     uop_rate = float(np.mean(untouched_factor_preserved)) if untouched_factor_preserved else 1.0
 
-    scene_graph_exact = True
-    for object_index in range(len(after_predictions)):
-        for factor in after_predictions[object_index]:
-            expected = after_ground_truth[object_index][factor]
-            predicted = after_predictions[object_index][factor]
-            if predicted != expected:
+    scene_graph_exact = edited_trusted
+    if scene_graph_exact:
+        for object_index in range(num_objects):
+            if not (bool(trusted_before[object_index]) and bool(trusted_after[object_index])):
                 scene_graph_exact = False
                 break
-        if not scene_graph_exact:
-            break
+            for factor in after_predictions[object_index]:
+                if after_predictions[object_index][factor] != after_ground_truth[object_index][factor]:
+                    scene_graph_exact = False
+                    break
+            if not scene_graph_exact:
+                break
 
-    only_target_changed = True
-    for object_index in range(len(before_predictions)):
-        for factor in before_predictions[object_index]:
-            changed = before_predictions[object_index][factor] != after_predictions[object_index][factor]
-            should_change = object_index == edited_object_index and factor == edit_factor
-            if changed != should_change:
+    only_target_changed = edited_trusted
+    if only_target_changed:
+        for object_index in range(num_objects):
+            if not (bool(trusted_before[object_index]) and bool(trusted_after[object_index])):
                 only_target_changed = False
                 break
-        if not only_target_changed:
-            break
+            for factor in before_predictions[object_index]:
+                changed = before_predictions[object_index][factor] != after_predictions[object_index][factor]
+                should_change = object_index == edited_object_index and factor == edit_factor
+                if changed != should_change:
+                    only_target_changed = False
+                    break
+            if not only_target_changed:
+                break
 
     delta_sgia = float(tfa and only_target_changed)
     sgia = float(scene_graph_exact and only_target_changed)
