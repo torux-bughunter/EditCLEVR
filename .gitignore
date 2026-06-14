@@ -1,0 +1,30 @@
+# Python
+__pycache__/
+*.py[cod]
+*$py.class
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+*.so
+.Python
+.venv/
+venv/
+env/
+.cache/
+*.egg-info/
+.eggs/
+dist/
+build/
+
+# OS / editor
+.DS_Store
+.idea/
+.vscode/
+
+# Generated datasets, metrics, and local upstream clones
+outputs/
+external/
+
+# Local env and secrets
+.env
+.env.*

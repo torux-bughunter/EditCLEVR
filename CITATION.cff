@@ -1,0 +1,26 @@
+cff-version: 1.2.0
+title: EditCLEVR
+message: >-
+  If you use this software or dataset, please cite the ICML workshop paper
+  when available.
+type: software
+license: MIT
+repository-code: https://github.com/torux-bughunter/EditCLEVR
+url: https://huggingface.co/datasets/torux/EditCLEVR
+keywords:
+  - object-centric learning
+  - intervention faithfulness
+  - CLEVR
+  - synthetic benchmark
+authors:
+  - family-names: EditCLEVR
+    given-names: Authors
+    affiliation: TBD
+preferred-citation:
+  type: article
+  title: "EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations"
+  authors:
+    - family-names: EditCLEVR
+      given-names: Authors
+  year: 2026
+  notes: ICML 2026 — update with final author list and paper URL when available.

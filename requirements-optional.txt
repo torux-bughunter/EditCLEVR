@@ -1,0 +1,4 @@
+# Optional extras beyond the core evaluation path.
+-r requirements.txt
+torch>=2.1
+huggingface_hub>=0.23

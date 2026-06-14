@@ -1,0 +1,49 @@
+{
+  "@context": {
+    "@vocab": "https://schema.org/",
+    "cr": "http://mlcommons.org/croissant/",
+    "rai": "http://mlcommons.org/croissant/RAI/"
+  },
+  "@type": "Dataset",
+  "name": "EditCLEVR Phase 1",
+  "description": "Paired before/after CLEVR scenes with single-factor atomic edits for intervention-faithfulness evaluation.",
+  "license": "https://creativecommons.org/licenses/by/4.0/",
+  "url": "https://huggingface.co/datasets/torux/EditCLEVR",
+  "distribution": [
+    {
+      "@type": "cr:FileObject",
+      "name": "editclevr_splits.tar.gz",
+      "contentUrl": "https://huggingface.co/datasets/torux/EditCLEVR/resolve/main/editclevr_splits.tar.gz",
+      "encodingFormat": "application/gzip"
+    },
+    {
+      "@type": "cr:FileObject",
+      "name": "editclevr_atomic_id.tar.gz",
+      "contentUrl": "https://huggingface.co/datasets/torux/EditCLEVR/resolve/main/editclevr_atomic_id.tar.gz",
+      "encodingFormat": "application/gzip"
+    },
+    {
+      "@type": "cr:FileObject",
+      "name": "editclevr_no_edit.tar.gz",
+      "contentUrl": "https://huggingface.co/datasets/torux/EditCLEVR/resolve/main/editclevr_no_edit.tar.gz",
+      "encodingFormat": "application/gzip"
+    },
+    {
+      "@type": "cr:FileObject",
+      "name": "editclevr_hard_distractor.tar.gz",
+      "contentUrl": "https://huggingface.co/datasets/torux/EditCLEVR/resolve/main/editclevr_hard_distractor.tar.gz",
+      "encodingFormat": "application/gzip"
+    },
+    {
+      "@type": "cr:FileObject",
+      "name": "editclevr_cogent_ood.tar.gz",
+      "contentUrl": "https://huggingface.co/datasets/torux/EditCLEVR/resolve/main/editclevr_cogent_ood.tar.gz",
+      "encodingFormat": "application/gzip"
+    }
+  ],
+  "rai:dataCollectionType": "Synthetic",
+  "rai:personalSensitiveData": "None",
+  "rai:dataSocialImpact": "Benchmark for evaluating intervention faithfulness in object-centric representations.",
+  "rai:dataLimitations": "Synthetic CLEVR scenes only; Blender 2.92 rendering stack.",
+  "rai:dataLicense": "CC-BY-4.0"
+}
