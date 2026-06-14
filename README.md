@@ -64,138 +64,43 @@ print(results["overall"]["SGIA"])           # {"mean": ..., "ci_lower": ..., "ci
 ```
 
 > Reference numbers: run the command above on the full Phase-1 dataset to reproduce the
-> **simple oracle reference** scores. The competitive paper baselines use the protocol below
-> (native/oracle encoders, probe training, and slot matching) and are **not shipped as
-> runnable code** in this release — see [Reproducing paper baselines](#reproducing-paper-baselines).
+> **simple oracle reference** only. Paper baselines are not shipped in this repo — see
+> [Reproducing paper baselines](#reproducing-paper-baselines) for the implementation choices we used.
 
 ## Reproducing paper baselines
 
-This section documents how the paper baselines were implemented in the EditCLEVR research
-pipeline. **This public repository ships the benchmark, metrics, and a lightweight oracle
-reference run only.** It does not include baseline training notebooks, external framework
-vendoring, or feature-extraction scripts. Use the details below to reimplement the same
-protocol with your own codebase, then score outputs with `Evaluator` or the metric utilities
-in `editclevr/evaluation/`.
+This repo has the **metrics and evaluation protocol only** — not the baseline training code.
+Below are the actual implementation choices from our development runs (not the earlier planning
+doc, which incorrectly suggested CLEVR checkpoint fine-tuning and ViT-B/16 DINOSAUR).
 
-### Pipeline overview
+**Slot Attention (`sa_native`)** — trained **from scratch** on EditCLEVR train before-images
+(no Google CLEVR checkpoint, no fine-tuning). Architecture matches
+[`google-research/slot_attention`](https://github.com/google-research/google-research/tree/master/slot_attention):
+CNN encoder → Slot Attention → spatial decoder (8×8 broadcast grid, four stride-2 transposed
+convs to 128×128). `num_slots=7`, `slot_dim=64`, 3 iterations, 128×128 input, 100k steps,
+batch 64, Adam `lr=4e-4`, 10k-step warmup + cosine decay.
 
-Paper numbers were produced with a four-stage Colab-oriented workflow:
+**DINOSAUR (`dinosaur_native`)** — MOVi-C recipe from
+[`amazon-science/object-centric-learning-framework`](https://github.com/amazon-science/object-centric-learning-framework)
+(`movi_c_feat_rec.yaml`). We used **DINO ViT-S/8** (`dino_vits8` via
+`torch.hub.load('facebookresearch/dino:main', 'dino_vits8')`), not ViT-B/16 — earlier ViT-B/16
+decoder variants collapsed on these scenes. Frozen backbone at 224×224 → 784 patch tokens
+(384-dim, CLS stripped), features pre-computed once and cached. Slot head: `num_slots=7`,
+`slot_dim=128`, 3 iterations; MLP decoder `[1024, 1024, 1024]` with slot softmax alpha.
+150k steps, batch 64, Adam `lr=4e-4`, 10k warmup, exp decay, z-scored cached features.
 
-| Stage | Purpose | Typical runtime |
-|-------|---------|-----------------|
-| **1. Train native models** | Fine-tune or train object-centric encoders on EditCLEVR `train` before-images | A100 GPU (hours per model) |
-| **2. Extract features** | Run every baseline on all splits; save per-pair object features + masks to disk | A100 GPU (~1 hr for full extraction pass) |
-| **3. Train probes & score** | Fit factor probes on `train`, decode attributes, compute headline metrics + bootstrap CIs | CPU (free tier OK) |
-| **4. Ablations (optional)** | Strict-native objectization, MLP-vs-linear probes, SAM2/DINOSAUR hybrids, compositional oracles | Mix of GPU + CPU |
+**DINO oracle (`dino_oracle_s8`)** — same **`dino_vits8` @ 224** backbone as DINOSAUR, but
+GT mask pooling instead of learned slots. This is the paired control: same encoder and
+resolution, different mask source.
 
-Conceptual notebook order from the development pipeline:
+**Other frozen oracles we extracted:** DINOv2 ViT-B/14 @ 224 (`dinov2_oracle`), SigLIP2
+ViT-B/16 @ 384 (`siglip2_oracle`). SAM2 hybrids used SAM2 ViT-Hiera-tiny automatic masks
+with those same backbones at native resolution.
 
-1. **Slot Attention** — fine-tune a CLEVR-pretrained object-discovery autoencoder on EditCLEVR train images.
-2. **DINOSAUR** — train a slot-attention grouping head on **frozen DINO patch features** (cached once on disk for speed).
-3. **SlotDiffusion / SPOT** — train vendored native slot baselines (image-only SlotDiffusion path + official SPOT teacher/student stack).
-4. **Feature extraction** — run all native, oracle, and hybrid models over every split; write one `.npz` cache per model per split.
-5. **Metrics & tables** — train probes, Hungarian-align native slots to GT, compute SGIA / ΔSGIA / CLS / EOA / NED (+ supporting metrics), bootstrap CIs, export JSON/CSVs.
-6. **Optional ablations** — strict argmax slot assignment (vs soft mixture), MLP probe sensitivity check, DINOSAUR-mask + frozen-DINO pooling, extra frozen-backbone oracles (CLIP, MAE, I-JEPA, etc.).
+Native models: Hungarian match predicted slots to GT masks (IoU), then linear factor probes
+on train features. Score with `Evaluator` or the metric utilities in `editclevr/evaluation/`.
 
-### Dual evaluation protocol
-
-Every baseline is evaluated under one of two protocols:
-
-**Native protocol (end-to-end discovery)**  
-The model receives a single RGB image and outputs `K` slot representations plus soft attention
-masks. Predicted slots are aligned to ground-truth objects with **Hungarian matching on mask
-IoU** (implemented in `editclevr/evaluation/slot_matching.py`). Metrics are computed on
-matched object pairs across the before/after edit. This measures discovery + representation
-together.
-
-**Oracle protocol (discovery removed)**  
-Ground-truth instance masks pool features from a **frozen pretrained spatial encoder**
-(resize mask → multiply feature map → spatial average pool → L2 normalize per object).
-This isolates whether the encoder represents object factors faithfully when object identity
-is given. The central paper comparison is **DINOSAUR native vs DINO oracle with the same
-backbone**: any SGIA gap is attributed to discovery corrupting representations.
-
-### Probe training & semantic metrics
-
-1. Collect L2-normalized per-object features from the **`train`** split (before images).
-2. Train **one probe per factor** (`color`, `material`, `size`, `shape`) — both **linear**
-   (logistic regression) and **MLP** heads were used in development to check probe sensitivity.
-3. Decode factor predictions for all objects on before/after images.
-4. Compute semantic intervention metrics on edited pairs:
-   - **TFA** — edited factor decoded correctly on the edited object after the edit
-   - **NFP** — non-edited factors on the edited object unchanged
-   - **UOP / UOP_rate** — untouched objects unchanged (strict vs rate-normalized)
-   - **SceneGraphExact** — full after-scene graph matches ground truth
-   - **ΔSGIA** — correct edited factor + localized graph change (soft intervention metric)
-   - **SGIA** — SceneGraphExact **and** exclusive change at the correct object/factor (strict headline metric)
-5. Compute change-locality metrics from embedding deltas: **EOA**, **CLS**, and **NED** on no-edit controls.
-6. Report **mean ± 95% bootstrap CI** (10,000 resamples in the shipped evaluator; 1,000 in early development runs).
-
-### Core paper baselines
-
-| Model | Protocol | Trains on EditCLEVR? | Implementation summary |
-|-------|----------|:--------------------:|------------------------|
-| **Slot Attention** | Native | Yes (fine-tune) | Start from the official Google Research CLEVR object-discovery checkpoint (`gs://gresearch/slot-attention/object-discovery/` or a PyTorch conversion). Fine-tune on EditCLEVR **train before-images** only. Typical config: `K=7` slots, slot dim `64`, `128×128` input, ~50k extra steps, batch 64. Built on the upstream [object-centric-learning-framework](https://github.com/amazon-science/object-centric-learning-framework) Slot Attention modules. |
-| **DINOSAUR** | Native | Yes (slot head only) | Frozen **DINO ViT-B/16** patch features from `torch.hub` → slot-attention grouping (`K=7`, dim `256`, 3 iterations) → MLP decoder reconstructing DINO tokens. **Pre-compute and cache** all train-set DINO features once (~2 GB) so training only updates the slot head (~3× faster). Train ~100k steps, batch 64, `224×224`, Adam `lr=4e-4` cosine decay. Development runs also used a **ViT-S/8** DINOSAUR variant for SAM2 hybrid experiments. |
-| **DINO ViT-B/16 oracle** | Oracle | No | Same DINO backbone as DINOSAUR. Forward pass → `14×14` patch grid (768-d) → GT mask pooling → per-object features. No slot training. |
-| **DINOv2 ViT-B/14 oracle** | Oracle | No | `torch.hub.load('facebookresearch/dinov2', 'dinov2_vitb14')` → `16×16` patches (768-d) → same mask pooling. Upper-bound style control with a stronger frozen encoder. |
-
-The **DINOSAUR native vs DINO-oracle gap** is the paper's main discovery-vs-representation
-diagnostic: same encoder family, different mask source (learned slots vs ground truth).
-
-### Extended baseline family (development pipeline)
-
-The full research pipeline also evaluated additional models reported in appendix /
-ablation tables:
-
-| Family | Model IDs (examples) | Mask source | Feature source |
-|--------|---------------------|-------------|----------------|
-| **SAM2 + frozen backbone** | `sam2_dino_s8`, `sam2_dinov2`, `sam2_siglip2_384` | SAM2 ViT-Hiera-tiny automatic masks (cached once per run) | Frozen DINO ViT-S/8, DINOv2, or SigLIP2 patch tokens |
-| **Extra frozen oracles** | `dino_oracle_s8`, `dinov2_oracle`, `siglip2_oracle` | Ground truth | Matching frozen backbones at 224 px |
-| **Vendored native slots** | `slotdiffusion_native`, `spot_native` | Learned (SlotDiffusion / SPOT) | Trained end-to-end on EditCLEVR train |
-| **Hybrid ablation** | `dinosaur_masks_dino_s8` | Soft masks from trained DINOSAUR decoder | Frozen DINO ViT-S/8 pooled under those masks (isolates mask quality vs GT oracle) |
-| **Compositional-pretraining oracles** | CLIP ViT-B/16, OpenCLIP B/16 (LAION-2B), SigLIP-1 B/16, MAE ViT-B/16, I-JEPA H/14 | Ground truth | Each frozen backbone + linear probes |
-
-**SAM2 note:** SAM2 masks were computed once per dataset run and reused so later cells only
-re-ran the cheap backbone forward pass. `sam2_dino_s8` uses the **same** DINO ViT-S/8
-backbone as `dino_oracle_s8`; only the mask source differs (automatic vs GT).
-
-### External dependencies (not in this release)
-
-Reimplementing the paper baselines requires, beyond this repo:
-
-- **[object-centric-learning-framework](https://github.com/amazon-science/object-centric-learning-framework)** — Slot Attention + DINOSAUR building blocks
-- **Google Slot Attention CLEVR checkpoint** — initialization for native SA fine-tuning
-- **`torch.hub` DINO / DINOv2** — frozen backbones for DINOSAUR and oracle rows
-- **SAM2** — automatic mask generation for hybrid baselines
-- **SlotDiffusion (image path) & SPOT** — vendored first-party copies were used for native slot-diffusion / SPOT rows
-- **Optional compositional encoders** — CLIP, OpenCLIP, SigLIP, MAE, I-JEPA via `torch.hub` or `timm`
-
-### Suggested reproduction checklist
-
-1. Download Phase-1 data: `python -m editclevr.download`
-2. Train or load each baseline; extract **per-object before/after features** (+ native soft masks if applicable) for every split.
-3. Hungarian-match native slots to GT masks (IoU threshold 0.5; flag low-confidence matches below IoU 0.1).
-4. Train linear (and optionally MLP) factor probes on **train** features.
-5. Build per-pair prediction records matching `Evaluator.expected_input_format` (change magnitudes, decoded factors, edited-object index).
-6. Score with `Evaluator(n_bootstrap=10000)` or `editclevr/evaluation/run_evaluation`-equivalent probe + metric code.
-7. Compare suites separately: `atomic_id`, `no_edit`, `hard_distractor`, `cogent_ood`.
-
-**Compute ballpark (development runs on Colab A100):** Slot Attention fine-tune ~3 hr; DINOSAUR
-feature cache ~0.5 hr + slot-head train ~4.5 hr; full multi-baseline feature extraction ~1 hr;
-probe + metric pass is CPU-only.
-
-### What you can run in this repository today
-
-| Goal | Command / API |
-|------|----------------|
-| Reference end-to-end eval (simple GT-mask oracle) | `python3 -m editclevr.evaluation.run_evaluation` |
-| Score your own extracted features | `from editclevr.evaluation import Evaluator` |
-| GT mask pooling over a torch feature map | `editclevr.evaluation.oracle_pooling.mask_pool_features` (requires `pip install -e ".[torch]"`) |
-| Slot–GT Hungarian alignment | `editclevr.evaluation.slot_matching.match_masks_by_iou` |
-
-For protocol semantics and intended use, see [`artifacts/benchmark_card.md`](artifacts/benchmark_card.md).
-
+## Generate data (optional)
 
 The CLEVR Blender generation scripts and assets are vendored in
 `editclevr/generator/clevr_blender/`, so the only external requirement is
