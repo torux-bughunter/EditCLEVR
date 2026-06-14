@@ -96,14 +96,15 @@ source is the only difference).
 384 (`siglip2_oracle`). SAM2 hybrids used SAM2 ViT-Hiera-tiny automatic masks with the same
 backbones at native resolution.
 
-For native models, each ground-truth object receives a feature vector from predicted
-slots via **IoU-weighted soft mixture** (default): slot features are averaged with
-weights proportional to soft mask–GT IoU. A **strict** alternative assigns each object
-the single slot with highest argmax best-overlap (BO) to that object. Probe training
-and conditional semantic metrics gate objects with BO below 0.50 on a frame.
-`editclevr/evaluation/slot_matching.py` provides Hungarian IoU matching as a utility;
-the reported native results used the soft/strict readouts above, not Hungarian matching.
-Results can be scored with `Evaluator` or the metric utilities in `editclevr/evaluation/`.
+**Native matching (headline protocol).** For learned-slot and SAM 2 rows, each
+ground-truth object is assigned the single predicted slot or mask proposal with highest
+**best-overlap (MatchBO)** in that frame (strict one-to-one assignment; unused slots and
+extra proposals are ignored). Semantic metrics are **conditional** on the edited object
+having MatchBO ≥ 0.5 in **both** before and after frames. Linear logistic-regression probes
+(one per factor) are fit on train object vectors; all object vectors are L2-normalized.
+An IoU-weighted soft mixture over slot/proposal features is reported in the paper as an
+ablation (Appendix D), not the headline setting. `editclevr/evaluation/slot_matching.py`
+implements Hungarian IoU matching as a utility; the paper tables use strict MatchBO assignment.
 
 ## Generate data (optional)
 
