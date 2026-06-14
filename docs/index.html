@@ -1,0 +1,242 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>EditCLEVR — Intervention Faithfulness Benchmark</title>
+    <meta
+      name="description"
+      content="EditCLEVR is a paired-scene intervention benchmark for compositional faithfulness of object-centric representations."
+    />
+    <link rel="preconnect" href="https://fonts.googleapis.com" />
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+    <link
+      href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600;700&family=Source+Serif+4:opsz,wght@8..60,600;8..60,700&display=swap"
+      rel="stylesheet"
+    />
+    <link rel="stylesheet" href="style.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <div class="container">
+        <div class="badge-row">
+          <span class="badge primary">ICML 2026 Workshop</span>
+          <span class="badge secondary">Phase-1 Benchmark Release</span>
+        </div>
+
+        <h1>EditCLEVR</h1>
+        <p class="subtitle">
+          A Paired-Scene Intervention Benchmark for Compositional Faithfulness of
+          Object-Centric Representations
+        </p>
+
+        <p class="authors">
+          <a href="https://github.com/AnuGK315">Anuraag Gadehothur Karnam</a>
+          &nbsp;·&nbsp;
+          <a href="https://github.com/torux-bughunter">Tarunesh Sathish</a>
+        </p>
+        <p class="affiliations">
+          Lebanon Trail High School &nbsp;·&nbsp; Walnut Grove High School
+        </p>
+
+        <div class="button-row">
+          <a class="button primary" href="https://github.com/torux-bughunter/EditCLEVR">Code</a>
+          <a class="button secondary" href="https://huggingface.co/datasets/torux/EditCLEVR">Dataset</a>
+          <span class="button disabled" title="Paper URL work in progress">Paper (soon)</span>
+        </div>
+      </div>
+    </header>
+
+    <main>
+      <section class="section">
+        <div class="container card teaser">
+          <figure>
+            <img src="images/paired_scene_before.png" alt="Scene before edit" />
+            <figcaption><strong>Before</strong></figcaption>
+          </figure>
+          <div class="teaser-arrow" aria-hidden="true">→</div>
+          <figure>
+            <img src="images/paired_scene_after.png" alt="Scene after edit" />
+            <figcaption><strong>After</strong></figcaption>
+          </figure>
+          <p class="teaser-caption">
+            Each benchmark pair applies exactly one object-level intervention — here, a single
+            factor change on one object while the rest of the scene stays fixed.
+          </p>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Abstract</h2>
+          <div class="card">
+            <p>
+              Object-centric models are often evaluated on discovery — whether slots or object
+              representations can be extracted from static scenes. EditCLEVR targets a different
+              question: <strong>intervention faithfulness</strong>. When exactly one object-level
+              factor changes between two images, does the model localize and represent that change
+              correctly, and only there?
+            </p>
+            <p>
+              The benchmark provides ~20k Blender-rendered CLEVR-style paired scenes with instance
+              masks, scene graphs, edit metadata, and difficulty tags. Four evaluation suites probe
+              clean atomic edits, no-edit controls, hard distractors, and CoGenT-style OOD attribute
+              combinations.
+            </p>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Why paired interventions?</h2>
+          <div class="grid-2">
+            <div class="feature">
+              <h3>Controlled edits</h3>
+              <p>
+                Each pair changes at most one intrinsic factor — color, material, size, or shape —
+                on one object, making causal attribution explicit.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Rich supervision</h3>
+              <p>
+                Ground-truth masks, object attributes, edited-object IDs, and scene JSON enable both
+                native and oracle-mask evaluation protocols.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Stress tests</h3>
+              <p>
+                No-edit controls catch spurious drift; hard-distractor and CoGenT-OOD suites test
+                robustness beyond easy in-distribution edits.
+              </p>
+            </div>
+            <div class="feature">
+              <h3>Standardized metrics</h3>
+              <p>
+                SGIA, ΔSGIA, CLS, EOA, and NED provide a comparable scorecard through a single
+                <code>Evaluator</code> API.
+              </p>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Phase-1 dataset</h2>
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Split</th>
+                  <th>Pairs</th>
+                  <th>Purpose</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr><td><code>train</code></td><td>10,000</td><td>Probe training</td></tr>
+                <tr><td><code>val</code></td><td>1,000</td><td>Validation</td></tr>
+                <tr><td><code>test_id</code></td><td>3,000</td><td>In-distribution atomic edits</td></tr>
+                <tr><td><code>test_noop</code></td><td>2,000</td><td>No-edit control pairs</td></tr>
+                <tr><td><code>test_hard</code></td><td>2,000</td><td>Hard distractor edits</td></tr>
+                <tr><td><code>test_cogent</code></td><td>2,000</td><td>CoGenT-OOD combinations</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Headline metrics</h2>
+          <div class="card">
+            <table>
+              <thead>
+                <tr>
+                  <th>Metric</th>
+                  <th>Suite</th>
+                  <th>Better</th>
+                  <th>What it measures</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr>
+                  <td><strong>SGIA</strong></td>
+                  <td>edited</td>
+                  <td>↑</td>
+                  <td>Semantic-Graph Intervention Accuracy</td>
+                </tr>
+                <tr>
+                  <td><strong>ΔSGIA</strong></td>
+                  <td>edited</td>
+                  <td>↑</td>
+                  <td>Correct edited factor, localized to that object</td>
+                </tr>
+                <tr>
+                  <td><strong>CLS</strong></td>
+                  <td>edited</td>
+                  <td>↑</td>
+                  <td>Change-Locality Score</td>
+                </tr>
+                <tr>
+                  <td><strong>EOA</strong></td>
+                  <td>edited</td>
+                  <td>↑</td>
+                  <td>Edited-Object Accuracy</td>
+                </tr>
+                <tr>
+                  <td><strong>NED</strong></td>
+                  <td>no-edit</td>
+                  <td>↓</td>
+                  <td>No-Edit Drift on control pairs</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Get started</h2>
+          <div class="card">
+            <pre><code>git clone https://github.com/torux-bughunter/EditCLEVR.git
+cd EditCLEVR
+python3 -m venv .venv && source .venv/bin/activate
+pip install -e ".[hub]"
+python -m editclevr.download
+python3 -m editclevr.evaluation.run_evaluation</code></pre>
+          </div>
+        </div>
+      </section>
+
+      <section class="section">
+        <div class="container">
+          <h2>Citation</h2>
+          <div class="card">
+            <pre class="citation"><code>@inproceedings{karnam2026editclevr,
+  title     = {EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations},
+  author    = {Karnam, Anuraag Gadehothur and Sathish, Tarunesh},
+  booktitle = {ICML 2026 Workshop on Combining Theory and Benchmarks: Towards A Virtuous Cycle to Understand and Guarantee Foundation Model Performance},
+  year      = {2026},
+  note      = {Paper URL work in progress}
+}</code></pre>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="footer">
+      <div class="container">
+        <p>
+          Code: <a href="https://github.com/torux-bughunter/EditCLEVR">MIT</a>
+          · Dataset: <a href="https://huggingface.co/datasets/torux/EditCLEVR">CC-BY-4.0</a>
+          · CLEVR generation code adapted from
+          <a href="https://github.com/facebookresearch/clevr-dataset-gen">facebookresearch/clevr-dataset-gen</a>
+        </p>
+      </div>
+    </footer>
+  </body>
+</html>
