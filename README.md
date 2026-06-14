@@ -64,17 +64,16 @@ print(results["overall"]["SGIA"])           # {"mean": ..., "ci_lower": ..., "ci
 ```
 
 > Reference numbers: run the command above on the full Phase-1 dataset to reproduce the
-> **simple oracle reference** only. Paper baselines are not shipped in this repo — see
-> [Reproducing paper baselines](#reproducing-paper-baselines) for the implementation choices we used.
+> bundled oracle reference baseline. For paper baseline settings, see
+> [Reproducing paper baselines](#reproducing-paper-baselines).
 
 ## Reproducing paper baselines
 
-This repo has the **metrics and evaluation protocol only** — not the baseline training code.
-Below are the actual implementation choices from our development runs (not the earlier planning
-doc, which incorrectly suggested CLEVR checkpoint fine-tuning and ViT-B/16 DINOSAUR).
+This repository provides the benchmark, metrics, and evaluation protocol. Baseline training
+code is not included; the settings below match those reported in the paper.
 
-**Slot Attention (`sa_native`)** — trained **from scratch** on EditCLEVR train before-images
-(no Google CLEVR checkpoint, no fine-tuning). Architecture matches
+**Slot Attention (`sa_native`)** — trained from scratch on EditCLEVR train before-images.
+Architecture follows
 [`google-research/slot_attention`](https://github.com/google-research/google-research/tree/master/slot_attention):
 CNN encoder → Slot Attention → spatial decoder (8×8 broadcast grid, four stride-2 transposed
 convs to 128×128). `num_slots=7`, `slot_dim=64`, 3 iterations, 128×128 input, 100k steps,
@@ -82,23 +81,24 @@ batch 64, Adam `lr=4e-4`, 10k-step warmup + cosine decay.
 
 **DINOSAUR (`dinosaur_native`)** — MOVi-C recipe from
 [`amazon-science/object-centric-learning-framework`](https://github.com/amazon-science/object-centric-learning-framework)
-(`movi_c_feat_rec.yaml`). We used **DINO ViT-S/8** (`dino_vits8` via
-`torch.hub.load('facebookresearch/dino:main', 'dino_vits8')`), not ViT-B/16 — earlier ViT-B/16
-decoder variants collapsed on these scenes. Frozen backbone at 224×224 → 784 patch tokens
-(384-dim, CLS stripped), features pre-computed once and cached. Slot head: `num_slots=7`,
-`slot_dim=128`, 3 iterations; MLP decoder `[1024, 1024, 1024]` with slot softmax alpha.
-150k steps, batch 64, Adam `lr=4e-4`, 10k warmup, exp decay, z-scored cached features.
+(`movi_c_feat_rec.yaml`). Frozen **DINO ViT-S/8** (`dino_vits8` via
+`torch.hub.load('facebookresearch/dino:main', 'dino_vits8')`) at 224×224 → 784 patch tokens
+(384-dim, CLS stripped), with train features pre-computed once and cached. Slot head:
+`num_slots=7`, `slot_dim=128`, 3 iterations; MLP decoder `[1024, 1024, 1024]` with slot
+softmax alpha. 150k steps, batch 64, Adam `lr=4e-4`, 10k warmup, exponential decay,
+z-scored cached features.
 
-**DINO oracle (`dino_oracle_s8`)** — same **`dino_vits8` @ 224** backbone as DINOSAUR, but
-GT mask pooling instead of learned slots. This is the paired control: same encoder and
-resolution, different mask source.
+**DINO oracle (`dino_oracle_s8`)** — same `dino_vits8` @ 224 backbone as DINOSAUR, with
+ground-truth mask pooling instead of learned slots (matched encoder and resolution; mask
+source is the only difference).
 
-**Other frozen oracles we extracted:** DINOv2 ViT-B/14 @ 224 (`dinov2_oracle`), SigLIP2
-ViT-B/16 @ 384 (`siglip2_oracle`). SAM2 hybrids used SAM2 ViT-Hiera-tiny automatic masks
-with those same backbones at native resolution.
+**Additional frozen oracles:** DINOv2 ViT-B/14 @ 224 (`dinov2_oracle`), SigLIP2 ViT-B/16 @
+384 (`siglip2_oracle`). SAM2 hybrids used SAM2 ViT-Hiera-tiny automatic masks with the same
+backbones at native resolution.
 
-Native models: Hungarian match predicted slots to GT masks (IoU), then linear factor probes
-on train features. Score with `Evaluator` or the metric utilities in `editclevr/evaluation/`.
+For native models, predicted slots are Hungarian-matched to ground-truth masks (IoU), then
+linear factor probes are fit on train features. Results can be scored with `Evaluator` or
+the metric utilities in `editclevr/evaluation/`.
 
 ## Generate data (optional)
 
