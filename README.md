@@ -96,9 +96,14 @@ source is the only difference).
 384 (`siglip2_oracle`). SAM2 hybrids used SAM2 ViT-Hiera-tiny automatic masks with the same
 backbones at native resolution.
 
-For native models, predicted slots are Hungarian-matched to ground-truth masks (IoU), then
-linear factor probes are fit on train features. Results can be scored with `Evaluator` or
-the metric utilities in `editclevr/evaluation/`.
+For native models, each ground-truth object receives a feature vector from predicted
+slots via **IoU-weighted soft mixture** (default): slot features are averaged with
+weights proportional to soft mask–GT IoU. A **strict** alternative assigns each object
+the single slot with highest argmax best-overlap (BO) to that object. Probe training
+and conditional semantic metrics gate objects with BO below 0.50 on a frame.
+`editclevr/evaluation/slot_matching.py` provides Hungarian IoU matching as a utility;
+the reported native results used the soft/strict readouts above, not Hungarian matching.
+Results can be scored with `Evaluator` or the metric utilities in `editclevr/evaluation/`.
 
 ## Generate data (optional)
 
