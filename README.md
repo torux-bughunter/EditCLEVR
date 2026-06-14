@@ -1,7 +1,5 @@
 # EditCLEVR
 
-**Project page:** [torux-bughunter.github.io/EditCLEVR](https://torux-bughunter.github.io/EditCLEVR/)
-
 **[ICML 2026]** Official source code for *"EditCLEVR: A Paired-Scene Intervention Benchmark for Compositional Faithfulness of Object-Centric Representations"* (ICML workshop on Combining Theory and Benchmarks; paper URL work in progress).
 
 EditCLEVR is a benchmark for evaluating **intervention faithfulness** in object-centric representations: when exactly one object-level factor changes between two images, does the model localize and represent that change correctly?

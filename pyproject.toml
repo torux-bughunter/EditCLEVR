@@ -44,7 +44,7 @@ all = ["torch>=2.1", "huggingface_hub>=0.23"]
 editclevr-download = "editclevr.download:main"
 
 [project.urls]
-Homepage = "https://torux-bughunter.github.io/EditCLEVR/"
+Homepage = "https://huggingface.co/datasets/torux/EditCLEVR"
 Repository = "https://github.com/torux-bughunter/EditCLEVR"
 Dataset = "https://huggingface.co/datasets/torux/EditCLEVR"
 
